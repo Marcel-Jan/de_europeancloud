@@ -1,0 +1,107 @@
+# ===============================
+# Trino Helm Configuration
+# ===============================
+# Install with: helm install trino trinodb/trino -f trino-values-fixed.yaml -n lakehouse
+
+# Server configuration
+server:
+  workers: 1
+  node:
+    environment: production
+    dataDir: /data/trino
+  log:
+    trino:
+      level: INFO
+  config:
+    path: /etc/trino
+    http:
+      port: 8080
+    # Do NOT set discovery.uri here for coordinator
+    query:
+      maxMemory: "2GB"
+      maxMemoryPerNode: "512MB"
+    https:
+      enabled: false
+
+# Coordinator specific configuration
+coordinator:
+  jvm:
+    maxHeapSize: "1G"
+    gcMethod:
+      type: "UseG1GC"
+      g1:
+        heapRegionSize: "32M"
+  config:
+    memory:
+      heapHeadroomPerNode: "256MB"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1.2Gi"
+    limits:
+      cpu: "1000m"
+      memory: "1.5Gi"
+  # Coordinator needs additional config to enable discovery service
+  additionalConfigProperties:
+    - discovery.uri=http://trino:8080
+
+# Worker specific configuration
+worker:
+  jvm:
+    maxHeapSize: "800M"
+    gcMethod:
+      type: "UseG1GC"
+      g1:
+        heapRegionSize: "32M"
+  config:
+    memory:
+      heapHeadroomPerNode: "256MB"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "1.2Gi"
+  # Workers must point to coordinator service
+  additionalConfigProperties:
+    - discovery.uri=http://trino:8080
+
+# Service configuration
+# This creates a service named "trino" that workers use to discover coordinator
+service:
+  type: ClusterIP
+  port: 8080
+
+# ===============================
+# Iceberg Catalog via Nessie
+# ===============================
+additionalCatalogs:
+  iceberg: |
+    connector.name=iceberg
+    iceberg.catalog.type=nessie
+    iceberg.nessie-catalog.uri=http://nessie:19120/api/v1
+    iceberg.nessie-catalog.ref=main
+    iceberg.nessie-catalog.default-warehouse-dir=s3://lakehouse/
+
+    # S3 Configuration for Scaleway
+    fs.native-s3.enabled=true
+    s3.endpoint=https://s3.nl-ams.scw.cloud
+    s3.path-style-access=true
+    s3.aws-access-key=${OBJECT_STORAGE_S3_ACCESS_KEY]
+    s3.aws-secret-key=${OBJECT_STORAGE_S3_SECRET_KEY]
+    s3.region=nl-ams
+
+# ===============================
+# Additional Global Configuration
+# ===============================
+additionalConfigProperties:
+  - http-server.http.port=8080
+
+# Image configuration
+image:
+  pullPolicy: IfNotPresent
+
+# Disable authentication for internal use
+auth:
+  enabled: false
