@@ -1,0 +1,21 @@
+env:
+  - name: NESSIE_VERSION_STORE_TYPE
+    value: IN_MEMORY
+
+  - name: NESSIE_STORE_TYPE
+    value: IN_MEMORY
+
+  - name: NESSIE_STORAGE_S3_ENDPOINT
+    value: https://lakehouse.s3.nl-ams.scw.cloud
+
+  - name: NESSIE_STORAGE_S3_ACCESS_KEY
+    value: ${NESSIE_STORAGE_S3_ACCESS_KEY}
+
+  - name: NESSIE_STORAGE_S3_SECRET_KEY
+    value: ${NESSIE_STORAGE_S3_SECRET_KEY}
+
+  - name: NESSIE_STORAGE_S3_PATH_STYLE_ACCESS
+    value: "true"
+
+  - name: NESSIE_STORAGE_S3_REGION
+    value: AMS
