@@ -1,0 +1,91 @@
+# ===============================
+# Jupyter with PySpark for Lakehouse
+# ===============================
+# Install with: helm install jupyter jupyterhub/jupyterhub -f jupyter-pyspark-values.yaml -n lakehouse
+
+# Hub configuration
+hub:
+  config:
+    JupyterHub:
+      admin_access: true
+    Authenticator:
+      admin_users:
+        - admin
+      allowed_users:
+        - admin
+    DummyAuthenticator:
+      password: "${JUPYTER_ADMIN_KEY}"  # FILL IN YOUR OWN VALUE
+
+  # Use simple authentication for development
+  authenticatePrometheus: false
+
+# Single user notebook configuration
+singleuser:
+  # Use PySpark-enabled image
+  image:
+    name: jupyter/pyspark-notebook
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Resource limits (adjusted for cluster capacity)
+  cpu:
+    limit: 1
+    guarantee: 0.3
+  memory:
+    limit: 1G
+    guarantee: 512M
+
+  # Storage for notebooks (persistent block storage)
+  storage:
+    type: dynamic
+    capacity: 10Gi
+    dynamic:
+      storageClass: sbs-default
+
+  # Environment variables for Spark and S3
+  extraEnv:
+    JAVA_HOME: "/usr/lib/jvm/java-17-openjdk-amd64"
+    PYSPARK_PYTHON: "/opt/conda/bin/python"
+    PYSPARK_DRIVER_PYTHON: "/opt/conda/bin/python"
+
+    # S3 Configuration
+    AWS_ACCESS_KEY_ID: "${STORAGE_S3_ACCESS_KEY}" # FILL IN YOUR OWN VALUE
+    AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}" # FILL IN YOUR OWN VALUE
+    AWS_REGION: "nl-ams"
+    AWS_S3_ENDPOINT: "https://s3.nl-ams.scw.cloud"
+
+    # Nessie Configuration (using short service name like Trino)
+    NESSIE_URI: "http://nessie:19120/api/v1"
+
+  # Disable network policy restrictions to allow full cluster access
+  networkPolicy:
+    enabled: false
+
+# Proxy configuration
+proxy:
+  service:
+    type: ClusterIP
+  chp:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128M
+      limits:
+        cpu: 200m
+        memory: 256M
+
+# Scheduling configuration
+scheduling:
+  userScheduler:
+    enabled: false
+  podPriority:
+    enabled: false
+  userPlaceholder:
+    enabled: false
+
+# Prescheduler disabled for resource-constrained clusters
+prePuller:
+  hook:
+    enabled: false
+  continuous:
+    enabled: false
